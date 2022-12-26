@@ -1,29 +1,3 @@
-module "private_sg" {
-  source = "terraform-aws-modules/security-group/aws"
-
-  name        = "${var.env_code}-private"
-  description = "Alow port 80 and 3306 tcp inbound to ASG instances within VPC"
-  vpc_id      = data.terraform_remote_state.level1.outputs.vpc_id
-
-  computed_ingress_with_source_security_group_id = [
-    {
-      rule                     = "http-80-tcp"
-      source_security_group_id = module.external_sg.security_group_id
-    }
-  ]
-  number_of_computed_ingress_with_source_security_group_id = 1
-
-  egress_with_cidr_blocks = [
-    {
-      from_port   = 0
-      to_port     = 65535
-      protocol    = "tcp"
-      description = "https to elb"
-      cidr_blocks = "0.0.0.0/0"
-    }
-  ]
-}
-
 data "aws_ami" "amazonlinux" {
   most_recent = true
   owners      = ["amazon"]
@@ -68,34 +42,26 @@ resource "aws_iam_instance_profile" "main" {
   role = aws_iam_role.main.name
 }
 
-
-output "db_instance_name" {
-  value = module.rds.db_instance_name
-}
-
-output "db_instance_endpoint" {
-  value = module.rds.db_instance_endpoint
-}
-
 resource "aws_launch_configuration" "web_config" {
   image_id             = data.aws_ami.amazonlinux.id
   instance_type        = "t2.micro"
   iam_instance_profile = aws_iam_instance_profile.main.name
-  security_groups      = [module.private_sg.security_group_id]
+  security_groups      = [data.terraform_remote_state.level2.outputs.private_sg.security_group_id]
 
-  user_data = templatefile("${path.module}/user-data.tpl", {
-    db_username  = module.rds.db_instance_username,
-    db_password  = module.rds.db_instance_password,
-    db_name      = module.rds.db_instance_name,
-    rds_endpoint = module.rds.db_instance_endpoint,
-    wp_username  = var.wp_username,
-    wp_email     = var.wp_email,
-    wp_password  = var.wp_password
+  user_data = templatefile("user-data.tpl", {
+    # db_username  = data.terraform_remote_state.level2.outputs.db_instance_username,
+    # db_password  = data.terraform_remote_state.level2.outputs.db_instance_password,
+    # db_name      = data.terraform_remote_state.level2.outputs.db_instance_name,
+    # rds_endpoint = data.terraform_remote_state.level2.outputs.db_instance_endpoint,
+    # wp_username  = var.wp_username,
+    # wp_email     = var.wp_email,
+    # wp_password  = var.wp_password,
+    db_username  = "admin",
+    db_password  = "takai326",
+    db_name      = "mydb",
+    rds_endpoint = "main.cngndrh55kuq.ap-northeast-1.rds.amazonaws.com:3306",
   })
 
-  depends_on = [
-    module.rds
-  ]
 }
 
 resource "aws_autoscaling_group" "app-asg" {
