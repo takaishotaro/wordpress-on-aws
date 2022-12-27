@@ -11,33 +11,6 @@ module "acm" {
   wait_for_validation = true
 }
 
-module "external_sg" {
-  source = "terraform-aws-modules/security-group/aws"
-
-  name   = "${var.env_code}-external"
-  vpc_id = data.terraform_remote_state.level1.outputs.vpc_id
-
-  ingress_with_cidr_blocks = [
-    {
-      from_port   = 443
-      to_port     = 443
-      protocol    = "tcp"
-      description = "https to elb"
-      cidr_blocks = "0.0.0.0/0"
-    }
-  ]
-
-  egress_with_cidr_blocks = [
-    {
-      from_port   = 0
-      to_port     = 65535
-      protocol    = "tcp"
-      description = "https to elb"
-      cidr_blocks = "0.0.0.0/0"
-    }
-  ]
-}
-
 module "alb" {
   source = "terraform-aws-modules/alb/aws"
 
@@ -48,7 +21,7 @@ module "alb" {
   vpc_id          = data.terraform_remote_state.level1.outputs.vpc_id
   internal        = false
   subnets         = data.terraform_remote_state.level1.outputs.public_subnet_id
-  security_groups = [module.external_sg.security_group_id]
+  security_groups = [data.terraform_remote_state.level2.outputs.external_sg.security_group_id]
 
 
   target_groups = [

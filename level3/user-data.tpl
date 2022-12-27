@@ -1,10 +1,12 @@
 #!/bin/bash
+# variable will be populated by terraform template
 db_username=${db_username}
 db_password=${db_password}
 db_name=${db_name}
 rds_endpoint=${rds_endpoint}
-
+# install LAMP Server
 yum update -y
+#install apache server and mysql client
 yum install -y httpd
 yum install -y mysql
  
@@ -54,8 +56,6 @@ if ($server['HTTPS'] === "on"  ) {
 define( 'FS_METHOD', 'direct' );
 define('WP_MEMORY_LIMIT', '128M');
 PHP
-
-wp user create $wp_username $wp_email --role=administrator --user_pass=$wp_password 
 
 # Change permission of /var/www/html/
 chown -R ec2-user:apache /var/www/html
